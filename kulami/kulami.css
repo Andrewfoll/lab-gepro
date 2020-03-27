@@ -1,0 +1,168 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * Kulami implementation : © <Your name here> <Your email address here>
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ *
+ * kulami.css
+ *
+ * Kulami stylesheet
+ *
+ */
+
+/*
+    This is the CSS stylesheet of your game User Interface.
+    
+    Styles defined on this file will be applied to the HTML elements you define in your
+    HTML template (kulami_kulami.tpl), and to HTML elements you create dynamically
+    (in kulami.js).
+    
+    Usually, you are using CSS to:
+    
+    1°) define the overall layout of your game
+        (ex: place the board on the top left, place player's hand beside, place the deck on the right, ...).
+
+    2°) create your CSS-sprites:
+        All images of your games should be gathered into a small number of image files. Then, using
+        background-image and background-position CSS properties, you create HTML blocks that can 
+        display these images correctly (see example below).
+    
+    3°) ... anything else:
+        It is really easy to add and remove CSS classes dynamically from your Javascript with
+        dojo.addClass and dojo.removeClass. It is also easy to check if an element has a class
+        (dojo.hasClass) or to get all elements with a specific class (dojo.query). This is why,
+        very often, using CSS classes for the logic of your user interface allow you to do complex
+        thing easily.
+        
+        
+     Note: on the production platform, this file will be compressed and comments will be removed.
+           Consequently, don't hesitate to put as many comments as necessary.
+*/
+
+@import url(../../../css/csslayer.css); /* Note: you must not use any @import directive other than this one */
+
+/********* You can start writing your CSS below this line: **********/
+
+#board {
+   width: 640px;
+   height: 640px;
+   /*background-image: url('img/template0.png');*/
+   
+}
+
+.tile {
+    width: 64px;
+    height: 64px;
+    position: absolute;
+	background-image: url('img/tiles.png');
+}
+
+.no_play {
+	background-color: #C4A177;
+	opacity: 0.6;
+}
+
+.marble {
+    width: 32px;
+    height: 32px;
+    position: absolute;
+    background-image: url('img/marble.png');
+}
+.marblecolor_ff0000 { background-position: 0px 0px;   }
+.marblecolor_000000 { background-position: 32px 0px;   }
+
+
+.possibleMove {
+	background-image: url('img/possibleMove.png'), url('img/tiles.png');
+    
+    cursor: pointer;  
+}
+
+.marbleicon {
+	width: 14px;
+	height: 14px;
+	display: inline-block;
+    position: relative;
+    background-repeat: no-repeat;
+    background-image: url( 'img/marbleicon.png');
+    background-position: -28px 0px;
+    margin-top: 4px;
+    margin-right: 3px;
+}
+
+.marbleicon_ff0000 {
+	background-position:0px 0px
+}
+
+.marbleicon_000000 {
+	background-position:-14px 0px
+}
+
+.cp_board {
+	clear: both;
+}
+
+.last_marble {
+	
+	border: 2px solid #0094FF;
+	border-radius: 25px;
+}
+
+.sprite0 {
+	background-position: 0px 0px;
+}
+
+.sprite1 {
+	background-position: -64px 0px;
+}
+
+.sprite2 {
+	background-position: -128px 0px;
+}
+
+.sprite3 {
+	background-position: 0px -64px;
+}
+
+.sprite4 {
+	background-position: -64px -64px;
+}
+
+.sprite5 {
+	background-position: -128px -64px;
+}
+
+.sprite6 {
+	background-position: 0px -128px;
+}
+
+.sprite7 {
+	background-position: -64px -128px;
+}
+
+.sprite8 {
+	background-position: -128px -128px;
+}
+
+.sprite9 {
+	background-position: 0px -192px;
+}
+
+.sprite10 {
+	background-position: -64px -192px;
+}
+
+.sprite11 {
+	background-position: -128px -192px;
+}
+
+.sprite12 {
+	background-position: 0px -256px;
+}
+
+.sprite13 {
+	background-position: -64px -256px;
+}
