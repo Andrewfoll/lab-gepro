@@ -47,17 +47,18 @@
 /********* You can start writing your CSS below this line: **********/
 
 #board {
+   /*width: 512px;
+   height: 512px;*/
    width: 640px;
    height: 640px;
-   /*background-image: url('img/template0.png');*/
-   
+   background-image: url('img/template0.png');
 }
 
 .tile {
     width: 64px;
     height: 64px;
     position: absolute;
-	background-image: url('img/tiles.png');
+
 }
 
 .no_play {
@@ -76,9 +77,13 @@
 
 
 .possibleMove {
-	background-image: url('img/possibleMove.png'), url('img/tiles.png');
+	background-image: url('img/possibleMove.png');
     
     cursor: pointer;  
+}
+
+.possibleMove:hover {
+	opacity: 0.5;
 }
 
 .marbleicon {
@@ -109,60 +114,4 @@
 	
 	border: 2px solid #0094FF;
 	border-radius: 25px;
-}
-
-.sprite0 {
-	background-position: 0px 0px;
-}
-
-.sprite1 {
-	background-position: -64px 0px;
-}
-
-.sprite2 {
-	background-position: -128px 0px;
-}
-
-.sprite3 {
-	background-position: 0px -64px;
-}
-
-.sprite4 {
-	background-position: -64px -64px;
-}
-
-.sprite5 {
-	background-position: -128px -64px;
-}
-
-.sprite6 {
-	background-position: 0px -128px;
-}
-
-.sprite7 {
-	background-position: -64px -128px;
-}
-
-.sprite8 {
-	background-position: -128px -128px;
-}
-
-.sprite9 {
-	background-position: 0px -192px;
-}
-
-.sprite10 {
-	background-position: -64px -192px;
-}
-
-.sprite11 {
-	background-position: -128px -192px;
-}
-
-.sprite12 {
-	background-position: 0px -256px;
-}
-
-.sprite13 {
-	background-position: -64px -256px;
 }

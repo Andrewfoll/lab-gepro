@@ -27,7 +27,7 @@
 
 <div id="board">
 	<!-- BEGIN tile -->
-        <div id="tile_{X}_{Y}" class="tile {PIECE} {SPRITE}" style="left: {LEFT}px; top: {TOP}px;"></div>
+        <div id="tile_{X}_{Y}" class="tile {PIECE}" style="left: {LEFT}px; top: {TOP}px;"></div>
     <!-- END tile -->
 	
 	<div id="marbles">

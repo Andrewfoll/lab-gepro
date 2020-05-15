@@ -25,6 +25,9 @@ function (dojo, declare) {
         constructor: function(){
             console.log('kulami constructor');
               
+            // Here, you can init the global variables of your user interface
+            // Example:
+            // this.myGlobalValue = 0;
 
         },
         
@@ -118,7 +121,16 @@ function (dojo, declare) {
             
             switch( stateName )
             {
-           
+            
+            /* Example:
+            
+            case 'myGameState':
+            
+                // Hide the HTML block we are displaying only during this game state
+                dojo.style( 'my_html_block_id', 'display', 'none' );
+                
+                break;
+           */
            
            
             case 'dummmy':
@@ -137,7 +149,18 @@ function (dojo, declare) {
             {            
                 switch( stateName )
                 {
-
+/*               
+                 Example:
+ 
+                 case 'myGameState':
+                    
+                    // Add 3 action buttons in the action status bar:
+                    
+                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
+                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
+                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
+                    break;
+*/
                 }
             }
         },        
@@ -263,9 +286,20 @@ function (dojo, declare) {
             dojo.subscribe( 'newScores', this, "notif_newScores" );
             this.notifqueue.setSynchronous( 'newScores', 500 );
             
+            // TODO: here, associate your game notifications with local methods
             
+            // Example 1: standard notification handling
+            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
+            
+            // Example 2: standard notification handling + tell the user interface to wait
+            //            during 3 seconds after calling the method in order to let the players
+            //            see what is happening in the game.
+            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
+            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
+            // 
         },  
-
+        
+        // TODO: from this point and below, you can write your game notifications handling methods
         
 		notif_playMarble: function( notif )
         {
@@ -292,6 +326,19 @@ function (dojo, declare) {
             }
         },
 		
-       
+        /*
+        Example:
+        
+        notif_cardPlayed: function( notif )
+        {
+            console.log( 'notif_cardPlayed' );
+            console.log( notif );
+            
+            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
+            
+            // TODO: play the card in the user interface.
+        },    
+        
+        */
    });             
 });

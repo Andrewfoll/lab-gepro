@@ -50,10 +50,24 @@
 		foreach($result as $id => $piece){
 			
 			foreach($piece as $tile){
-				$this->page->insert_block("tile", array('PIECE' => ('tile_' . $id), "SPRITE" => ("sprite" . $tile["sprite"]),'X' => $tile["x"], 'Y' => $tile["y"], 'LEFT' => ($tile["x"] * $hor_scale), 'TOP' => ($tile["y"] * $ver_scale)));
+				$this->page->insert_block("tile", array('PIECE' => ('tile_' . $id),'X' => $tile[0], 'Y' => $tile[1], 'LEFT' => ($tile[0] * $hor_scale), 'TOP' => ($tile[1] * $ver_scale)));
 			}
 		}
 		
+		
+		/*
+        for( $x=1; $x<=8; $x++ )
+        {
+            for( $y=1; $y<=8; $y++ )
+            {
+                $this->page->insert_block( "tile", array(
+                    'X' => $x,
+                    'Y' => $y,
+                    'LEFT' => round( ($x-1)*$hor_scale),
+                    'TOP' => round( ($y-1)*$ver_scale)
+                ) );
+            }        
+        }*/
 
         /*********** Do not change anything below this line  ************/
   	}

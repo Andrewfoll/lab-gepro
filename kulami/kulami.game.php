@@ -24,7 +24,12 @@ class Kulami extends Table
 {
 	function __construct( )
 	{
-        
+        // Your global variables labels:
+        //  Here, you can assign labels to global variables you are using for this game.
+        //  You can use any number of global variables with IDs between 10 and 99.
+        //  If your game has options (variants), you also have to associate here a label to
+        //  the corresponding ID in gameoptions.inc.php.
+        // Note: afterwards, you can get/set the global variables with getGameStateValue/setGameStateInitialValue/setGameStateValue
         parent::__construct();
         
         self::initGameStateLabels( array() );        
@@ -42,90 +47,40 @@ class Kulami extends Table
         In this method, you must setup the game according to the game rules, so that
         the game is ready to be played.
     */
-    function setupNewGame( $players, $options = array() )
+    protected function setupNewGame( $players, $options = array() )
     {    
 
         $gameinfos = self::getGameinfos();
         
-		//Initialize players
-		$this->InsertPlayersInfoIntoDatabase($players);
-		
-		//Initialize pieces
-		$this->InsertPiecesInfoIntoDatabase();
-		
-		//Initialize tiles
-		$this->InsertTilesInfoIntoDatabase();
-       
-		//Active next player
-        $this->activeNextPlayer();
-
-    }
-	
-	function InsertPlayersInfoIntoDatabase($players){
-	
-		$values = array();
-	
-		$player_color = '';
-		$player_canal = '';
-		$player_name = '';
-		$player_avatar = '';
-	
-		//Default colors (RED, BLACK)
 		$default_colors = array( "ff0000", "000000" );
-	
-		$sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
-	
-		//Insert each player info into the database
-		foreach( $players as $player_id => $player )
-		{
-			$player_color = "'" . array_shift( $default_colors ) . "'";
-			$player_canal = "'" . $player['player_canal'] . "'";
-			$player_name = "'" . addslashes($player['player_name']) . "'";
-			$player_avatar = "'" . addslashes( $player['player_avatar']) . "'"; 
-		
-			$player_info = "('" . $player_id . "',";
-			$player_info .= $player_color . ",";
-			$player_info .= $player_canal . ",";
-			$player_info .= $player_name . ",";
-			$player_info .= $player_avatar . ")";
-		
-			$values[] = $player_info;
-    
-		}
+ 
+        // Create players
+        $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
+        $values = array();
+        foreach( $players as $player_id => $player )
+        {
+            $color = array_shift( $default_colors );
+            $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+        }
+        $sql .= implode( $values, ',' );
+        self::DbQuery( $sql );
         
-		$sql .= implode( $values, ',' );
-		self::DbQuery( $sql );
+        self::reloadPlayersBasicInfos();
         
-		self::reloadPlayersBasicInfos();
-	
-	}
-
-	function InsertPiecesInfoIntoDatabase(){
-	
-		//TODO: Read this data from a file
+        /************ Start the game initialization *****/
+       
 		$sql = "INSERT INTO pieces (piece_id, n_tiles) VALUES ";
-		$sql .= "(0, 4),(1,4),(2,4),(3,4),(4,4),(5,6),(6,6),(7,6),(8,6),";
-		$sql .= "(9,3),(10,3),(11,3),(12,3),(13,2),(14,2),(15,2),(16,2);";
-	
+		$sql .= "(0, 4),(1,4),(2,2),(3,3),(4,6),(5,3),(6,6),(7,3),(8,6),";
+		$sql .= "(9,2),(10,3),(11,4),(12,2),(13,4),(14,6),(15,2),(16,4);";
+	   
 		self::DbQuery($sql);
-	
-	}
+		
 
-	function InsertTilesInfoIntoDatabase(){
-	
-		$x = 0;
-		$y = 1;
-	
-		$tile_x = 0;
-		$tile_y = 0;
-		$owner = '';
-		$tile_piece_id = 0;
-		$last_played = '';
-	
-	
-		$sql = "INSERT INTO tiles (x,y,player, piece_id, last_played) VALUES ";
-        
-		$values = array();
+	   
+		// Init the board
+        $sql = "INSERT INTO tiles (x,y,player, piece_id, last_played) VALUES ";
+        $sql_values = array();
+		
 		
 		$schema = $this->getBoardSchema();
 		
@@ -133,25 +88,19 @@ class Kulami extends Table
 			
 			foreach($piece as $tile){
 				
-				$tile_x = "'" . $tile["x"] . "'";
-				$tile_y = "'" . $tile["y"] . "'";
-				$owner = 'NULL'; //At the beginning of the game, all tiles are empty
-				$tile_piece_id = "'" . $piece_id . "'";
-				$last_played = 'NULL';
-			
-				$tile_info = "(" . $tile_x . ",";
-				$tile_info .= $tile_y . ",";
-				$tile_info .= $owner . ",";
-				$tile_info .= $tile_piece_id . ",";
-				$tile_info .= $last_played . ")";
-			
-				$values[] = $tile_info;
+				$sql_values[] = "('$tile[0]','$tile[1]',NULL,'$piece_id',NULL)";
 			}
 		}
 
-		$sql .= implode( $values, ',' );
-		self::DbQuery( $sql );
-	}
+        $sql .= implode( $sql_values, ',' );
+        self::DbQuery( $sql );
+        
+        
+        // Activate first player (which is in general a good idea :) )
+        $this->activeNextPlayer();
+
+        /************ End of the game initialization *****/
+    }
 
     /*
         getAllDatas: 
@@ -162,19 +111,26 @@ class Kulami extends Table
         _ when the game starts
         _ when a player refreshes the game page (F5)
     */
-    function getAllDatas(){
+    protected function getAllDatas()
+    {
         $result = array();
     
-        $current_player_id = self::getCurrentPlayerId();
+        $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
     
+        // Get information about players
+        // Note: you can retrieve some extra field you added for "player" table in "dbmodel.sql" if you need it.
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
+		
+  
+        // TODO: Gather all information about current game situation (visible by player $current_player_id).
 		
 		
         $result['tiles'] = self::getObjectListFromDB( "SELECT x, y, player FROM tiles WHERE player IS NOT NULL" );
 		
 		$result['counters'] = $this->getGameCounters();
 
+ 
         return $result;
     }
 
@@ -188,143 +144,39 @@ class Kulami extends Table
         This method is called each time we are in a game state with the "updateGameProgression" property set to true 
         (see states.inc.php)
     */
-    function getGameProgression(){
-		$total_marbles = 28 * 2;
+    function getGameProgression()
+    {
+        // TODO: compute and return the game progression
 		
-		$counters = self::getGameCounters();
 		
-		$progress = 0;
-		
-		$remaining_marbles = 0;
-		
-		//Get remaing marbles
-		foreach($counters as $counter){
-			$remaining_marbles += $counter['counter_value'];
-		}
-		
-		//Get marbles played
-		$progress = $total_marbles - $remaining_marbles;
-		
-		$progress = ($progress * 100.0) / $total_marbles;
 
-        return $progress;
+        return 0;
     }
 
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Utility functions
 ////////////    
+
+    /*
+        In this space, you can put any utility methods useful for your game logic
+    */
 	
-	//TODO: read schema's info from file
 	function getBoardSchema(){
 		$model = 0;
 		$result = array();
 		
 		switch($model){
 			case 0:
-				$result = array(
-		"0" => array(
-					array("sprite" => 1, "x" => 4, "y" => 0),
-					array("sprite" => 2, "x" => 5, "y" => 0),
-					array("sprite" => 7, "x" => 4, "y" => 1),
-					array("sprite" => 8, "x" => 5, "y" => 1)
-				),
-		"1" => array(
-					array("sprite" => 1, "x" => 2, "y" => 1),
-					array("sprite" => 2, "x" => 3, "y" => 1),
-					array("sprite" => 7, "x" => 2, "y" => 2),
-					array("sprite" => 8, "x" => 3, "y" => 2)
-				),
-		"2" => array(
-					array("sprite" => 1, "x" => 2, "y" => 6),
-					array("sprite" => 2, "x" => 3, "y" => 6),
-					array("sprite" => 7, "x" => 2, "y" => 7),
-					array("sprite" => 8, "x" => 3, "y" => 7)
-				),
-		"3" => array(
-					array("sprite" => 1, "x" => 5, "y" => 6),
-					array("sprite" => 2, "x" => 6, "y" => 6),
-					array("sprite" => 7, "x" => 5, "y" => 7),
-					array("sprite" => 8, "x" => 6, "y" => 7)
-				),
-		"4" => array(
-					array("sprite" => 1, "x" => 5, "y" => 8),
-					array("sprite" => 2, "x" => 6, "y" => 8),
-					array("sprite" => 7, "x" => 5, "y" => 9),
-					array("sprite" => 8, "x" => 6, "y" => 9)
-				),
-
-		"5" => array(
-					array("sprite" => 1, "x" => 0, "y" => 2),
-					array("sprite" => 2, "x" => 1, "y" => 2),
-					array("sprite" => 4, "x" => 0, "y" => 3),
-					array("sprite" => 5, "x" => 1, "y" => 3),
-					array("sprite" => 7, "x" => 0, "y" => 4),
-					array("sprite" => 8, "x" => 1, "y" => 4)
-				),
-		"6" => array(
-					array("sprite" => 1, "x" => 7, "y" => 6),
-					array("sprite" => 2, "x" => 8, "y" => 6),
-					array("sprite" => 4, "x" => 7, "y" => 7),
-					array("sprite" => 5, "x" => 8, "y" => 7),
-					array("sprite" => 7, "x" => 7, "y" => 8),
-					array("sprite" => 8, "x" => 8, "y" => 8)
-				),
-		"7" => array(
-					array("sprite" => 1, "x" => 3, "y" => 3),
-					array("sprite" => 12, "x" => 4, "y" => 3),
-					array("sprite" => 2, "x" => 5, "y" => 3),
-					array("sprite" => 7, "x" => 3, "y" => 4),
-					array("sprite" => 13, "x" => 4, "y" => 4),
-					array("sprite" => 8, "x" => 5, "y" => 4)
-				),
-		"8" => array(
-					array("sprite" => 1, "x" => 6, "y" => 4),
-					array("sprite" => 12, "x" => 7, "y" => 4),
-					array("sprite" => 2, "x" => 8, "y" => 4),
-					array("sprite" => 7, "x" => 6, "y" => 5),
-					array("sprite" => 13, "x" => 7, "y" => 5),
-					array("sprite" => 8, "x" => 8, "y" => 5)
-				),
-				
-		"9" => array(
-					array("sprite" => 0, "x" => 2, "y" => 3),
-					array("sprite" => 3, "x" => 2, "y" => 4),
-					array("sprite" => 6, "x" => 2, "y" => 5)
-				),
-		"10" => array(
-					array("sprite" => 0, "x" => 6, "y" => 1),
-					array("sprite" => 3, "x" => 6, "y" => 2),
-					array("sprite" => 6, "x" => 6, "y" => 3)
-				),
-		"11" => array(
-					array("sprite" => 9, "x" => 7, "y" => 3),
-					array("sprite" => 10, "x" => 8, "y" => 3),
-					array("sprite" => 11, "x" => 9, "y" => 3)
-				),
-		"12" => array(
-					array("sprite" => 9, "x" => 3, "y" => 5),
-					array("sprite" => 10, "x" => 4, "y" => 5),
-					array("sprite" => 11, "x" => 5, "y" => 5)
-				),
-				
-		"13" => array(
-					array("sprite" => 9, "x" => 4, "y" =>2 ),
-					array("sprite" => 11, "x" => 5, "y" =>2 )
-				),
-		"14" => array(
-					array("sprite" => 9, "x" => 0, "y" => 5),
-					array("sprite" => 11, "x" => 1, "y" => 5)
-				),
-		"15" => array(
-					array("sprite" => 9, "x" => 3, "y" => 8),
-					array("sprite" => 11, "x" => 4, "y" => 8)
-				),
-		"16" => array(
-					array("sprite" => 0, "x" => 4, "y" => 6),
-					array("sprite" => 6, "x" => 4, "y" => 7)
-				)
-);
+				$result = array("0" => array(array(4,0),array(5,0),array(4,1),array(5,1)), "1" => array(array(2,1),array(3,1),array(2,2),array(3,2)),
+								"2" => array(array(4,2),array(5,2)), "3" => array(array(6,1),array(6,2),array(6,3)),
+								"4" => array(array(0,2),array(1,2),array(0,3),array(1,3),array(0,4),array(1,4)), "5" => array(array(2,3),array(2,4),array(2,5)),
+								"6" => array(array(3,3),array(4,3),array(5,3),array(3,4),array(4,4),array(5,4)), "7" => array(array(7,3),array(8,3),array(9,3)),
+								"8" => array(array(6,4),array(7,4),array(8,4),array(6,5),array(7,5),array(8,5)), "9" => array(array(0,5),array(1,5)),
+							   "10" => array(array(3,5),array(4,5),array(5,5)), "11" => array(array(2,6),array(3,6),array(2,7),array(3,7)),
+							   "12" => array(array(4,6),array(4,7)), "13" => array(array(5,6),array(6,6),array(5,7),array(6,7)),
+							   "14" => array(array(7,6),array(8,6),array(7,7),array(8,7),array(7,8),array(8,8)), "15" => array(array(3,8),array(4,8)),
+							   "16" => array(array(5,8),array(6,8),array(5,9),array(6,9)));
 				break;
 				
 			
@@ -334,129 +186,110 @@ class Kulami extends Table
 		
 	}
 	
-	function getAllBoardInfoFromDatabase()
+	function getBoard()
     {
         return self::getObjectListFromDB( "SELECT x, y, player, piece_id, last_played FROM tiles");
     }
 	
 	
-	function getPossibleMoves( $board, $player_id ){
-	
-		$last_moves_info = self::getObjectListFromDB("SELECT * FROM tiles WHERE last_played IS NOT NULL");
-	
-		$last_moves_counter = count($last_moves_info);
-	
-		$moves = null;
-	
-		switch($last_moves_counter){
-			case 0:
-				//No marbles placed
-				$moves = $this->GetPossibleMovesFirstTime();
-				break;
-			case 1:
-				//Only one marble placed
-				$moves = $this->GetPossibleMovesSecondTime($board, $player_id, $last_moves_info);
-				break;
-			case 2:
-				//Check normally
-				$moves = $this->GetPossibleMovesNormally($board, $player_id, $last_moves_info);
-				break;
-		}
-	
-		$result = array("moves" => $moves['moves']);
-	
-		$result['opponent_move_piece_id'] = $moves['opponent_move']['player_id'] ?? null;
-	
-		$result['my_last_move_piece_id'] = $moves['my_last_move']['player_id'] ?? null;
-	
-		$result['last_marble'] = (isset($moves['opponent_move']) ? 
-								array(
-									$moves['opponent_move']['x'],
-									$moves['opponent_move']['y']
-								) : null);
-								
-		return $result;
-	
-	}
-
-	function GetPossibleMovesFirstTime(){
-	
+	function getPossibleMoves( $board, $player_id )
+    {
+		
+        $result = array();
+        
+        
+		$last_moves = self::getObjectListFromDB("SELECT x, y, player, piece_id FROM tiles WHERE last_played IS NOT NULL");
+		
+		
 		$schema = $this->getBoardSchema();
-	
-		$result = array();
-
-	
-		foreach($schema as $piece){
-			foreach($piece as $tile){
-				if(!isset($result[$tile["x"]])){
-					$result[$tile["x"]] = array();
-				}
-					
-				$result[$tile["x"]][$tile["y"]] = true;
-
-			}
-		}
-	
-		return array("moves" => $result); 
-	}
-
-	function GetPossibleMovesSecondTime($board, $player_id, $last_moves_info){
-	
-		$result = array();
-
-		$last_move = $last_moves_info[0];
-	
-		foreach($board as $tile){
-			if($tile['player'] !== null)
-				continue;
-			if(($tile['x'] == $last_move['x'] || $tile['y'] == $last_move['y']) && $tile['piece_id'] != $last_move['piece_id'])
-			{
-				if(!isset($result[$tile['x']])){
-					$result[$tile['x']] = array();
-				}
-					
-				$result[$tile['x']][$tile['y']] = true;
+		
+		$count = count($last_moves);
+		$found = 0;
+		
+		if($count == 0){
+			//First move
 			
+			foreach($schema as $piece){
+				foreach($piece as $tile){
+					if(!isset($result[$tile[0]])){
+						$result[$tile[0]] = array();
+					}
+					
+					$result[$tile[0]][$tile[1]] = true;
+					$found++;
+				}
 			}
+			/*
+			for( $x=1; $x<=8; $x++ )
+			{
+				for( $y=1; $y<=8; $y++ )
+				{
+					
+					if( ! isset( $result[$x] ) ){
+						$result[$x] = array();
+                        
+					}
+					
+					$result[$x][$y] = true;
+					$found++;
+				}
+			}*/
+			
 		}
-	
-		return array("moves" => $result, "opponent_move" => $last_move); 
-	
-	}
-
-	function GetPossibleMovesNormally($board, $player_id, $last_moves_info){
-	
-		$result = array();
-	
-		$opponent_move = '';
-		$my_last_move = '';
-	
-		if($last_moves_info[0]['player'] == $player_id){
-			$opponent_move = $last_moves_info[1];
-			$my_last_move = $last_moves_info[0];
+		else if($count == 1){
+			//My first move
+			$opponent_move = $last_moves[0];
+			
+			foreach($board as $tile){
+				if($tile['player'] !== null)
+					continue;
+				if(($tile['x'] == $opponent_move['x'] || $tile['y'] == $opponent_move['y']) && $tile['piece_id'] != $opponent_move['piece_id'])
+				{
+					if(!isset($result[$tile['x']])){
+						$result[$tile['x']] = array();
+					}
+					
+					$result[$tile['x']][$tile['y']] = true;
+					$found++;
+				}
+			}
 		}
 		else{
-			$opponent_move = $last_moves_info[0];
-			$my_last_move = $last_moves_info[1];
-		}
 			
-		foreach($board as $tile){
-			if($tile['player'] !== null)
-				continue;
-			if(($tile['x'] == $opponent_move['x'] || $tile['y'] == $opponent_move['y']) && $tile['piece_id'] != $opponent_move['piece_id'] && $tile['piece_id'] != $my_last_move['piece_id'])
-			{
-				if(!isset($result[$tile['x']])){
-					$result[$tile['x']] = array();
-				}
+			if($last_moves[0]['player'] == $player_id){
+				$opponent_move = $last_moves[1];
+				$my_last_move = $last_moves[0];
+			}
+			else{
+				$opponent_move = $last_moves[0];
+				$my_last_move = $last_moves[1];
+			}
+			
+			foreach($board as $tile){
+				if($tile['player'] !== null)
+					continue;
+				if(($tile['x'] == $opponent_move['x'] || $tile['y'] == $opponent_move['y']) && $tile['piece_id'] != $opponent_move['piece_id'] && $tile['piece_id'] != $my_last_move['piece_id'])
+				{
+					if(!isset($result[$tile['x']])){
+						$result[$tile['x']] = array();
+					}
 					
-				$result[$tile['x']][$tile['y']] = true;
+					$result[$tile['x']][$tile['y']] = true;
+					$found++;
+				}
 			}
 		}
-	
-		return array("moves" => $result, "opponent_move" => $opponent_move,
-					"my_last_move" => $my_last_move);
-	
-	}
+		
+		
+		$result = array('moves' => $result);
+		$result['opponent_move_piece_id'] = $opponent_move['piece_id'] ?? null;
+		$result['my_last_move_piece_id'] = $my_last_move['piece_id'] ?? null;
+		
+		$result['last_marble'] = (isset($opponent_move)? array($opponent_move['x'], $opponent_move['y']) : null);
+                
+			
+        return $result;
+    }
 	
 	
 	function getGameCounters() {
@@ -517,7 +350,7 @@ class Kulami extends Table
         $player_id = self::getActivePlayerId(); 
         
         // Now, check if this is a possible move
-        $board = self::getAllBoardInfoFromDatabase();
+        $board = self::getBoard();
         $moves = self::getPossibleMoves($board, $player_id)['moves'];
 		
         
@@ -535,7 +368,7 @@ class Kulami extends Table
             self::DbQuery( $sql );
             
 			
-			//Calculate points
+			//calc points
 			$sql = "SELECT count(*) AS n, tiles.piece_id AS id, tiles.player AS player, pieces.n_tiles AS n_tiles FROM tiles INNER JOIN pieces ON tiles.piece_id = pieces.piece_id WHERE tiles.player IS NOT NULL GROUP BY tiles.piece_id , tiles.player";
 			
 			
@@ -577,12 +410,18 @@ class Kulami extends Table
 			}
 			
 
-			//Statistics//
 			
-			
-			//////////////
             
-            
+            /*
+            // Statistics
+            self::incStat( count( $turnedOverDiscs ), "turnedOver", $player_id );
+            if( ($x==1 && $y==1) || ($x==8 && $y==1) || ($x==1 && $y==8) || ($x==8 && $y==8) )
+                self::incStat( 1, 'discPlayedOnCorner', $player_id );
+            else if( $x==1 || $x==8 || $y==1 || $y==8 )
+                self::incStat( 1, 'discPlayedOnBorder', $player_id );
+            else if( $x>=3 && $x<=6 && $y>=3 && $y<=6 )
+                self::incStat( 1, 'discPlayedOnCenter', $player_id );
+            */
             // Notify
             self::notifyAllPlayers( "playMarble", clienttranslate( '${player_name} plays a marble' ), array(
                 'player_id' => $player_id,
@@ -613,12 +452,18 @@ class Kulami extends Table
 //////////// Game state arguments
 ////////////
 
+    /*
+        Here, you can create methods defined as "game state arguments" (see "args" property in states.inc.php).
+        These methods function is to return some additional information that is specific to the current
+        game state.
+    */
 	
 	function argPlayerTurn()
     {
 
+		
         return array(
-            'possibleMoves' => self::getPossibleMoves(self::getAllBoardInfoFromDatabase(), self::getActivePlayerId())
+            'possibleMoves' => self::getPossibleMoves(self::getBoard(), self::getActivePlayerId())
         );
     }
                 
@@ -626,6 +471,11 @@ class Kulami extends Table
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
 ////////////
+
+    /*
+        Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
+        The action method of state X is called everytime the current game state is set to X.
+    */
 	
 	function stNextPlayer()
     {
@@ -638,10 +488,10 @@ class Kulami extends Table
 			$this->gamestate->nextState('endGame');
 		}
 		
-		if(count(self::getPossibleMoves(self::getAllBoardInfoFromDatabase(), self::getActivePlayerId())['moves']) == 0)
+		if(count(self::getPossibleMoves(self::getBoard(), self::getActivePlayerId())['moves']) == 0)
 			$this->gamestate->nextState('endGame');
         
-        //self::giveExtraTime( $player_id );
+        self::giveExtraTime( $player_id );
         $this->gamestate->nextState( 'nextTurn' );
 
     }
@@ -650,6 +500,13 @@ class Kulami extends Table
 //////////// Zombie
 ////////////
 
+    /*
+        zombieTurn:
+        
+        This method is called each time it is the turn of a player who has quit the game (= "zombie" player).
+        You can do whatever you want in order to make sure the turn of this player ends appropriately
+        (ex: pass).
+    */
 
     function zombieTurn( $state, $active_player )
     {
@@ -664,10 +521,42 @@ class Kulami extends Table
 ///////////////////////////////////////////////////////////////////////////////////:
 ////////// DB upgrade
 //////////
+
+    /*
+        upgradeTableDb:
+        
+        You don't have to care about this until your game has been published on BGA.
+        Once your game is on BGA, this method is called everytime the system detects a game running with your old
+        Database scheme.
+        In this case, if you change your Database scheme, you just have to apply the needed changes in order to
+        update the game database and allow the game to continue to run with your new version.
+    
+    */
    
     function upgradeTableDb( $from_version )
     {
-        
+        // $from_version is the current version of this game database, in numerical form.
+        // For example, if the game was running with a release of your game named "140430-1345",
+        // $from_version is equal to 1404301345
+       
+        // Example:
+//        if( $from_version <= 1404301345 )
+//        {
+//           // ! important ! Use DBPREFIX_<table_name> for all tables
+//
+//            $sql = "ALTER TABLE DBPREFIX_xxxxxxx ....";
+//            self::applyDbUpgradeToAllDB( $sql );
+//        }
+//        if( $from_version <= 1405061421 )
+//        {
+//            // ! important ! Use DBPREFIX_<table_name> for all tables
+//
+//            $sql = "CREATE TABLE DBPREFIX_xxxxxxx ....";
+//            self::applyDbUpgradeToAllDB( $sql );
+//        }
+//        // Please add your future database scheme changes here
+//
+//
 
 
     }    
